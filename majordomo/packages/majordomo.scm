@@ -65,103 +65,138 @@
     (license #f)))
 
 (define-public guile-ihs
-  (let ((commit "317dcd923093bcadbb7099fe3d13a52c646d9021"))
-    (package
-      (home-page "https://majordomo.ru/")
-      (name "guile-ihs")
-      (version (git-version "0.0.1" "1" commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://cgit.duckdns.org/git/guile/guile-ihs")
-               (commit commit)))
-         (file-name (git-file-name name version))
-         (sha256
-          (base32
-           "0p9xm0pch8k7ll80b1hp3d1bsafpqzk5hzw3pbjq0djphjjibjf3"))))
-      (build-system gnu-build-system)
-      (arguments
-       `(#:modules ((guix build gnu-build-system)
-                    (guix build utils)
-                    (srfi srfi-26)
-                    (ice-9 popen)
-                    (ice-9 rdelim))
-                   #:phases
-                   (modify-phases %standard-phases
-                     (add-after 'install 'wrap-program
-                       (lambda* (#:key inputs outputs #:allow-other-keys)
-                         ;; Make sure the 'guix' command finds GnuTLS,
-                         ;; Guile-JSON, and Guile-Git automatically.
-                         (let* ((out    (assoc-ref outputs "out"))
-                                (guile  (assoc-ref inputs "guile"))
-                                (gcrypt (assoc-ref inputs "guile-gcrypt"))
-                                (gnutls (assoc-ref inputs "gnutls"))
-                                (guix   (assoc-ref inputs "guix"))
-                                (json   (assoc-ref inputs "guile-json"))
-                                (deps   (list gcrypt gnutls guix json out))
-                                (effective
-                                 (read-line
-                                  (open-pipe* OPEN_READ
-                                              (string-append guile "/bin/guile")
-                                              "-c" "(display (effective-version))")))
-                                (path   (string-join
-                                         (map (cut string-append <>
-                                                   "/share/guile/site/"
-                                                   effective)
-                                              deps)
-                                         ":"))
-                                (gopath (string-join
-                                         (map (cut string-append <>
-                                                   "/lib/guile/" effective
-                                                   "/site-ccache")
-                                              deps)
-                                         ":")))
+  (package
+    (home-page "https://majordomo.ru/")
+    (name "guile-ihs")
+    (version "1.0.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://cgit.duckdns.org/git/guile/guile-ihs")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32
+         "0hgk5xh2b3ll0m2ffjwpm6k8qafarwv70sbgbmkhgq0i59l05z4a"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:modules
+       ((guix build gnu-build-system)
+        (guix build utils)
+        (srfi srfi-26)
+        (ice-9 popen)
+        (ice-9 rdelim))
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'configure 'set-env
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             ;; Make sure the 'guix' command finds GnuTLS,
+             ;; Guile-JSON, and Guile-Git automatically.
+             (let* ((out    (assoc-ref outputs "out"))
+                    (guile  (assoc-ref inputs "guile"))
+                    (gcrypt (assoc-ref inputs "guile-gcrypt"))
+                    (gnutls (assoc-ref inputs "gnutls"))
+                    (guix   (assoc-ref inputs "guix"))
+                    (json   (assoc-ref inputs "guile-json"))
+                    (deps   (list gcrypt gnutls guix json out))
+                    (effective
+                     (read-line
+                      (open-pipe* OPEN_READ
+                                  (string-append guile "/bin/guile")
+                                  "-c" "(display (effective-version))")))
+                    (path   (string-join
+                             (map (cut string-append <>
+                                       "/share/guile/site/"
+                                       effective)
+                                  deps)
+                             ":"))
+                    (gopath (string-join
+                             (map (cut string-append <>
+                                       "/lib/guile/" effective
+                                       "/site-ccache")
+                                  deps)
+                             ":")))
 
-                           (wrap-program (string-append out "/bin/ihs")
-                             `("GUILE_LOAD_PATH" ":" prefix (,path))
-                             `("GUILE_LOAD_COMPILED_PATH" ":" prefix (,gopath)))
+               (setenv "COLUMNS" "999")
+               (setenv "GUILE_LOAD_PATH" path)
+               (format #t "GUILE_LOAD_PATH: ~a\n" path)
+               (setenv "GUILE_LOAD_COMPILED_PATH" gopath)
+               (format #t "GUILE_LOAD_COMPILED_PATH: ~a\n" gopath)
 
-                           #t)
-                         (let* ((guile  (assoc-ref inputs "guile"))
-                                (effective
-                                 (read-line
-                                  (open-pipe* OPEN_READ
-                                              (string-append guile "/bin/guile")
-                                              "-c" "(display (effective-version))")))
-                                (path (cut string-append <>
-                                           "/share/guile/site/"
-                                           effective
-                                           "/ihs")))
-                           (with-directory-excursion "ihs"
-                             (copy-file "config.scm.in" "config.scm")
-                             (substitute* "config.scm"
-                               (("@PACKAGE_NAME@") ,name)
-                               (("@PACKAGE_VERSION@") ,version)
-                               (("@PACKAGE_URL@") ,home-page)
-                               (("@CVM@") (string-append (assoc-ref inputs "cvm")
-                                                         "/bin/cvm")))
-                             (install-file "config.scm"
-                                           (path (assoc-ref outputs "out"))))
-                           #t)))
-                     (add-before 'check 'set-environment
-                       (lambda _
-                         (setenv "HOME" (getcwd)))))))
-      (native-inputs
-       `(("autoconf" ,autoconf)
-         ("automake" ,automake)
-         ("pkg-config" ,pkg-config)))
-      (inputs
-       `(("cvm" ,python-cvm)
-         ("gnutls" ,gnutls)
-         ("guile" ,guile-2.2)
-         ("guile-gcrypt" ,guile-gcrypt)
-         ("guile-json" ,guile-json)
-         ("guix" ,guix)))
-      (synopsis "Guile interface to Majordomo API")
-      (description
-       "This package provides a Guile interface to Majordomo API.")
-      (license license:gpl3+))))
+               #t)))
+         (add-after 'install 'wrap-program
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             ;; Make sure the 'guix' command finds GnuTLS,
+             ;; Guile-JSON, and Guile-Git automatically.
+             (let* ((out    (assoc-ref outputs "out"))
+                    (guile  (assoc-ref inputs "guile"))
+                    (gcrypt (assoc-ref inputs "guile-gcrypt"))
+                    (gnutls (assoc-ref inputs "gnutls"))
+                    (guix   (assoc-ref inputs "guix"))
+                    (json   (assoc-ref inputs "guile-json"))
+                    (deps   (list gcrypt gnutls guix json out))
+                    (effective
+                     (read-line
+                      (open-pipe* OPEN_READ
+                                  (string-append guile "/bin/guile")
+                                  "-c" "(display (effective-version))")))
+                    (path   (string-join
+                             (map (cut string-append <>
+                                       "/share/guile/site/"
+                                       effective)
+                                  deps)
+                             ":"))
+                    (gopath (string-join
+                             (map (cut string-append <>
+                                       "/lib/guile/" effective
+                                       "/site-ccache")
+                                  deps)
+                             ":")))
+
+               (wrap-program (string-append out "/bin/ihs")
+                 `("GUILE_LOAD_PATH" ":" prefix (,path))
+                 `("GUILE_LOAD_COMPILED_PATH" ":" prefix (,gopath)))
+
+               #t)
+             (let* ((guile  (assoc-ref inputs "guile"))
+                    (effective
+                     (read-line
+                      (open-pipe* OPEN_READ
+                                  (string-append guile "/bin/guile")
+                                  "-c" "(display (effective-version))")))
+                    (path (cut string-append <>
+                               "/share/guile/site/"
+                               effective
+                               "/ihs")))
+               (with-directory-excursion "ihs"
+                 (copy-file "config.scm.in" "config.scm")
+                 (substitute* "config.scm"
+                   (("@PACKAGE_NAME@") ,name)
+                   (("@PACKAGE_VERSION@") ,version)
+                   (("@PACKAGE_URL@") ,home-page)
+                   (("@CVM@") (string-append (assoc-ref inputs "cvm")
+                                             "/bin/cvm")))
+                 (install-file "config.scm"
+                               (path (assoc-ref outputs "out"))))
+               #t)))
+         (add-before 'check 'set-environment
+           (lambda _
+             (setenv "HOME" (getcwd)))))))
+    (native-inputs
+     `(("autoconf" ,autoconf)
+       ("automake" ,automake)
+       ("pkg-config" ,pkg-config)))
+    (inputs
+     `(("cvm" ,python-cvm)
+       ("gnutls" ,gnutls)
+       ("guile" ,guile-3.0-latest)
+       ("guile-gcrypt" ,guile-gcrypt)
+       ("guile-json" ,guile-json-4)
+       ("guix" ,guix)))
+    (synopsis "Guile interface to Majordomo API")
+    (description
+     "This package provides a Guile interface to Majordomo API.")
+    (license license:gpl3+)))
 
 (define-public guile-loadavg
   (let ((commit "424360d0b5cbfcb3dee711d47b0f7d139c6c4f7e"))
