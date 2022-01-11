@@ -40,31 +40,29 @@
   #:use-module (ice-9 rdelim))
 
 (define-public python-cvm
-  (let ((commit "b76b1472f68563bf5ecb79f2fe32bfd2c1421ccb"))
-    (package
-      (name "python-cvm")
-      (version (git-version "0.0.1" "1" commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://cgit.duckdns.org/git/python/python-cvm")
-               (commit commit)))
-         (file-name (git-file-name name version))
-         (sha256
-          (base32
-           "0hswv48wcf1gd9navxkw11gpkc0zh46ljss6fxn853msikp53fwb"))))
-      (build-system python-build-system)
-      (arguments
-       '(#:tests? #f)) ; no tests
-      (propagated-inputs
-       `(("python-pexpect" ,python-pexpect)))
-      (home-page "https://majordomo.ru/")
-      (synopsis "Python interface to @uref{http://billing2.intr}")
-      (description
-       "This package provides a Python interface to
+  (package
+    (name "python-cvm")
+    (version "1.0.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://cgit.duckdns.org/git/python/python-cvm")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32
+         "0q8raj9ards8jkl49dimlf7k439fslk72q94bp4q6dps85r9yzrz"))))
+    (build-system python-build-system)
+    (arguments
+     '(#:tests? #f)) ; no tests
+    (propagated-inputs
+     `(("python-pexpect" ,python-pexpect)))
+    (home-page "https://majordomo.ru/")
+    (synopsis "Python interface to @uref{http://billing2.intr}")
+    (description
+     "This package provides a Python interface to
 @uref{http://billing2.intr}")
-      (license #f))))
+    (license #f)))
 
 (define-public guile-ihs
   (let ((commit "317dcd923093bcadbb7099fe3d13a52c646d9021"))
