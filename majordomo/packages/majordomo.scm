@@ -47,7 +47,7 @@
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://cgit.duckdns.org/git/python/python-cvm")
+             (url "https://github.com/6d6a/billing2-python-cvm")
              (commit (string-append "v" version))))
        (sha256
         (base32
@@ -73,7 +73,7 @@
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://cgit.duckdns.org/git/guile/guile-ihs")
+             (url "https://github.com/6d6a/hms-guile-ihs")
              (commit (string-append "v" version))))
        (sha256
         (base32
@@ -292,16 +292,17 @@
 (define-public majordomo-ca
   (package
     (name "majordomo-ca")
-    (version "0.0.1")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append
-                    "https://cgit.duckdns.org"
-                    "/guix/guix-majordomo"
-                    "/plain/majordomo/packages/Majordomo_LLC_Root_CA.crt"))
-              (sha256
-               (base32
-                "1nyj8sns0vfm51bky3cwf2cvx8fqw1nyb678r9v8wrf75ssbzwd0"))))
+    (version "1.0.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (string-append
+         "https://raw.githubusercontent.com/6d6a/package-management-guix-majordomo/v"
+         version "/majordomo/packages/Majordomo_LLC_Root_CA.crt"))
+       (sha256
+        (base32
+         "1nyj8sns0vfm51bky3cwf2cvx8fqw1nyb678r9v8wrf75ssbzwd0"))))
     (arguments
      `(#:modules ((guix build utils))
        #:builder
